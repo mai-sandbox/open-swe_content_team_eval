@@ -1,14 +1,13 @@
 """
 Multi-agent content creation team using LangGraph.
 """
-
-from typing import Annotated, TypedDict, Literal
+from typing import Annotated, TypedDict, Literal, List
 from dotenv import load_dotenv
 
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage
 from langchain_anthropic import ChatAnthropic
 from langchain_core.tools import tool
-from langgraph.graph import StateGraph, START, END
+from langgraph.graph import StateGraph, START, END, ToolNode
 from langgraph.graph.message import add_messages
 from langgraph.types import Send
 
@@ -169,11 +168,12 @@ def writer_revision_node(state: TeamState):
         "current_agent": "writer"
     }
 
-graph_builder = WorkflowGraph(TeamState)
+graph_builder = StateGraph(TeamState)
 
 # Add agent nodes
 graph_builder.add_node("researcher", research_agent_node)
 graph_builder.add_node("writer", writer_agent_node)
+graph_builder.add_node("research_tool", ToolNode([web_research]))
 graph_builder.add_node("reviewer", reviewer_agent_node)
 graph_builder.add_node("writer_revision", writer_revision_node)
 
