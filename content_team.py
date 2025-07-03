@@ -91,6 +91,173 @@ def fact_check(content: str) -> str:
 
 # Initialize agents
 def create_research_agent():
+    """Create research agent with error handling."""
+    try:
+        model = ChatAnthropic(model="claude-3-haiku-20240307", temperature=0.1)
+        return model.bind_tool([web_research])
+    except Exception as e:
+        logging.error(f"Error creating research agent: {e}")
+        raise
+
+def create_writer_agent():
+    """Create writer agent with error handling."""
+    try:
+        model = ChatAnthropic(model="claude-3-haiku-20240307", temperature=0.7)
+        return model
+    except Exception as e:
+        logging.error(f"Error creating writer agent: {e}")
+        raise
+
+def create_reviewer_agent():
+    """Create reviewer agent with error handling."""
+    try:
+        model = ChatAnthropic(model="claude-3-haiku-20240307", temperature=0.3)
+        return model.bind_tool([fact_check])
+    except Exception as e:
+        logging.error(f"Error creating reviewer agent: {e}")
+        raise
+
+# Agent nodes with comprehensive error handling
+def research_agent_node(state: TeamState):
+    """Research agent gathers information with error handling."""
+    try:
+        # Validate state
+        if not validate_state(state):
+            logging.error("Invalid state in research_agent_node")
+            return {
+                "messages": state.get("messages", []) + [AIMessage(content="Error: Invalid state for research agent")],
+                "current_agent": "researcher",
+                "research_notes": "Error: Could not complete research due to invalid state"
+            }
+        
+        model = create_research_agent()
+        task = safe_get_state_field(state, 'task', 'No task specified')
+        
+        system_msg = SystemMessage(content=f"""
+        You are a research agent. Your task is to research: {task}
+        
+        Use the web_research tool to gather information.
+        Then pass your findings to the writer agent.
+        """)
+        
+        messages = [system_msg] + state["messages"]
+        
+        # Invoke model with error handling
+        try:
+            response = model.invoke(messages)
+        except Exception as e:
+            logging.error(f"Error invoking research model: {e}")
+            error_response = AIMessage(content=f"Research failed: {str(e)}")
+            return {
+                "messages": state["messages"] + [error_response],
+                "current_agent": "researcher",
+                "research_notes": f"Error during research: {str(e)}"
+            }
+        
+        # Handle tool calls if present
+        if hasattr(response, 'tool_calls') and response.tool_calls:
+            try:
+                tool_messages = []
+                for tool_call in response.tool_calls:
+                    if tool_call['name'] == 'web_research':
+                        try:
+                            result = web_research.invoke(tool_call['args'])
+                            tool_messages.append(ToolMessage(
+                                content=str(result),
+                                tool_call_id=tool_call['id']
+                            ))
+                        except Exception as e:
+                            logging.error(f"Error executing web_research tool: {e}")
+                            tool_messages.append(ToolMessage(
+                                content=f"Tool execution failed: {str(e)}",
+                                tool_call_id=tool_call['id']
+                            ))
+                
+                # Get final response after tool execution
+                try:
+                    final_response = model.invoke(messages + [response] + tool_messages)
+                except Exception as e:
+                    logging.error(f"Error getting final response from research model: {e}")
+                    final_response = AIMessage(content=f"Research completed with errors: {str(e)}")
+                
+                return {
+                    "messages": state["messages"] + [response] + tool_messages + [final_response],
+                    "current_agent": "researcher",
+                    "research_notes": final_response.content
+                }
+            except Exception as e:
+                logging.error(f"Error handling tool calls in research agent: {e}")
+                return {
+                    "messages": state["messages"] + [response],
+                    "current_agent": "researcher", 
+                    "research_notes": f"Research completed with tool errors: {str(e)}"
+                }
+        else:
+            return {
+                "messages": state["messages"] + [response],
+                "current_agent": "researcher",
+                "research_notes": response.content
+            }
+            
+    except Exception as e:
+        logging.error(f"Unexpected error in research_agent_node: {e}")
+        return {
+            "messages": state.get("messages", []) + [AIMessage(content=f"Research agent failed: {str(e)}")],
+            "current_agent": "researcher",
+            "research_notes": f"Critical error: {str(e)}"
+        }
+
+def writer_agent_node(state: TeamState):
+    """Writer agent creates content with error handling."""
+    try:
+        # Validate state
+        if not validate_state(state):
+            logging.error("Invalid state in writer_agent_node")
+            return {
+                "messages": state.get("messages", []) + [AIMessage(content="Error: Invalid state for writer agent")],
+                "current_agent": "writer",
+                "draft_content": "Error: Could not create content due to invalid state"
+            }
+        
+        model = create_writer_agent()
+        task = safe_get_state_field(state, 'task', 'No task specified')
+        research_notes = safe_get_state_field(state, 'research_notes', 'No research available')
+        
+        system_msg = SystemMessage(content=f"""
+        You are a creative writer. Create engaging content based on:
+        Task: {task}
+        Research: {research_notes}
+        
+        Write clear, engaging content that incorporates the research findings.
+        """)
+        
+        messages = [system_msg] + state["messages"]
+        
+        # Invoke model with error handling
+        try:
+            response = model.invoke(messages)
+        except Exception as e:
+            logging.error(f"Error invoking writer model: {e}")
+            error_response = AIMessage(content=f"Content creation failed: {str(e)}")
+            return {
+                "messages": state["messages"] + [error_response],
+                "current_agent": "writer",
+                "draft_content": f"Error during content creation: {str(e)}"
+            }
+        
+        return {
+            "messages": state["messages"] + [response],
+            "current_agent": "writer",
+            "draft_content": response.content
+        }
+        
+    except Exception as e:
+        logging.error(f"Unexpected error in writer_agent_node: {e}")
+        return {
+            "messages": state.get("messages", []) + [AIMessage(content=f"Writer agent failed: {str(e)}")],
+            "current_agent": "writer",
+            "draft_content": f"Critical error: {str(e)}"
+        }
     model = ChatAnthropic(model="claude-3-haiku-20240307", temperature=0.1)
     return model.bind_tool([web_research])
 
@@ -354,6 +521,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
