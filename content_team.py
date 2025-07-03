@@ -241,34 +241,34 @@ graph_builder.add_edge(START, "researcher")
 # Add conditional routing
 graph_builder.add_conditional_edge(
     "researcher",
-    route_to_next_agent,
+    route_from_researcher,
     {
-        "writer": "writer",
-        "reviewer": "reviewer",
-        "writer_revision": "writer_revision",
-        "end": END
+        "writer": "writer"
     }
 )
 
 graph_builder.add_conditional_edge(
     "writer", 
-    route_to_next_agent,
+    route_from_writer,
     {
-        "writer": "writer",
-        "reviewer": "reviewer", 
-        "writer_revision": "writer_revision",
-        "end": END
+        "reviewer": "reviewer"
     }
 )
 
 graph_builder.add_conditional_edge(
     "reviewer",
-    route_to_next_agent,
+    route_from_reviewer,
     {
-        "writer": "writer",
-        "reviewer": "reviewer",
         "writer_revision": "writer_revision", 
         "end": END
+    }
+)
+
+graph_builder.add_conditional_edge(
+    "writer_revision",
+    route_from_writer_revision,
+    {
+        "reviewer": "reviewer"
     }
 )
 
@@ -311,6 +311,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
