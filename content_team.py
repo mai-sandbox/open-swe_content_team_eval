@@ -467,26 +467,58 @@ def route_to_next_agent(state: TeamState) -> Literal["writer", "reviewer", "writ
     return "end"
 
 def writer_revision_node(state: TeamState):
-    """Writer revises content based on feedback."""
-    model = create_writer_agent()
-    
-    system_msg = SystemMessage(content=f"""
-    Revise your content based on this feedback: {state['feedback']}
-    
-    Original content: {state['draft_content']}
-    Research notes: {state['research_notes']}
-    
-    Provide an improved version.
-    """)
-    
-    messages = [system_msg] + state["messages"]
-    response = model.invoke(messages)
-    
-    return {
-        "messages": state["messages"] + [response],
-        "draft_content": response.content,
-        "current_agent": "writer"
-    }
+    """Writer revises content based on feedback with error handling."""
+    try:
+        # Validate state
+        if not validate_state(state):
+            logging.error("Invalid state in writer_revision_node")
+            return {
+                "messages": state.get("messages", []) + [AIMessage(content="Error: Invalid state for writer revision")],
+                "current_agent": "writer",
+                "draft_content": "Error: Could not revise content due to invalid state"
+            }
+        
+        model = create_writer_agent()
+        feedback = safe_get_state_field(state, 'feedback', 'No feedback provided')
+        draft_content = safe_get_state_field(state, 'draft_content', 'No content to revise')
+        research_notes = safe_get_state_field(state, 'research_notes', 'No research available')
+        
+        system_msg = SystemMessage(content=f"""
+        Revise your content based on this feedback: {feedback}
+        
+        Original content: {draft_content}
+        Research notes: {research_notes}
+        
+        Provide an improved version that addresses the feedback.
+        """)
+        
+        messages = [system_msg] + state["messages"]
+        
+        # Invoke model with error handling
+        try:
+            response = model.invoke(messages)
+        except Exception as e:
+            logging.error(f"Error invoking writer revision model: {e}")
+            error_response = AIMessage(content=f"Content revision failed: {str(e)}")
+            return {
+                "messages": state["messages"] + [error_response],
+                "current_agent": "writer",
+                "draft_content": f"Error during revision: {str(e)}"
+            }
+        
+        return {
+            "messages": state["messages"] + [response],
+            "draft_content": response.content,
+            "current_agent": "writer"
+        }
+        
+    except Exception as e:
+        logging.error(f"Unexpected error in writer_revision_node: {e}")
+        return {
+            "messages": state.get("messages", []) + [AIMessage(content=f"Writer revision failed: {str(e)}")],
+            "current_agent": "writer",
+            "draft_content": f"Critical error: {str(e)}"
+        }
 
 graph_builder = StateGraph(TeamState)
 
@@ -571,6 +603,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
