@@ -4,6 +4,7 @@ Multi-agent content creation team using LangGraph.
 
 from typing import Annotated, TypedDict, Literal, List
 from dotenv import load_dotenv
+import logging
 
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage, ToolMessage
 from langchain_anthropic import ChatAnthropic
@@ -14,6 +15,9 @@ from langgraph.types import Send
 
 load_dotenv()
 
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
 # Shared state for the team
 class TeamState(TypedDict):
     messages: Annotated[List[BaseMessage], add_messages]
@@ -23,6 +27,45 @@ class TeamState(TypedDict):
     feedback: str
     current_agent: str
     revision_count: int
+
+# State validation functions
+def validate_state(state: TeamState) -> bool:
+    """Validate that the state contains required fields."""
+    try:
+        required_fields = ['messages', 'task', 'research_notes', 'draft_content', 
+                          'feedback', 'current_agent', 'revision_count']
+        
+        for field in required_fields:
+            if field not in state:
+                logging.error(f"Missing required state field: {field}")
+                return False
+        
+        # Validate field types
+        if not isinstance(state['messages'], list):
+            logging.error("State field 'messages' must be a list")
+            return False
+            
+        if not isinstance(state['task'], str):
+            logging.error("State field 'task' must be a string")
+            return False
+            
+        if not isinstance(state['revision_count'], int):
+            logging.error("State field 'revision_count' must be an integer")
+            return False
+            
+        return True
+        
+    except Exception as e:
+        logging.error(f"Error validating state: {e}")
+        return False
+
+def safe_get_state_field(state: TeamState, field: str, default=""):
+    """Safely get a state field with a default value."""
+    try:
+        return state.get(field, default)
+    except Exception as e:
+        logging.error(f"Error accessing state field '{field}': {e}")
+        return default
 
 @tool
 def web_research(topic: str) -> str:
@@ -311,6 +354,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
