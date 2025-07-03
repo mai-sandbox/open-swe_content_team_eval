@@ -259,7 +259,7 @@ def writer_agent_node(state: TeamState):
             "draft_content": f"Critical error: {str(e)}"
         }
     model = ChatAnthropic(model="claude-3-haiku-20240307", temperature=0.1)
-    return model.bind_tool([web_research])
+    return model.bind_tools([web_research])
 
 def create_writer_agent():
     model = ChatAnthropic(model="claude-3-haiku-20240307", temperature=0.7)
@@ -603,6 +603,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
