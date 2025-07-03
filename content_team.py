@@ -139,9 +139,27 @@ def reviewer_agent_node(state: TeamState):
     messages = [system_msg]
     response = model.invoke(messages)
     
+    # Handle tool calls if present
+    feedback_content = response.content
+    if response.tool_calls:
+        # Execute tool calls
+        tool_messages = []
+        for tool_call in response.tool_calls:
+            if tool_call["name"] == "fact_check":
+                tool_result = fact_check.invoke(tool_call["args"])
+                tool_messages.append(ToolMessage(
+                    content=str(tool_result),
+                    tool_call_id=tool_call["id"]
+                ))
+        
+        # Get final response after tool execution
+        if tool_messages:
+            final_response = model.invoke(messages + [response] + tool_messages)
+            feedback_content = final_response.content
+    
     return {
-        "messages": [response],
-        "feedback": response.content,
+        "messages": state["messages"] + [response],
+        "feedback": feedback_content,
         "current_agent": "reviewer",
         "revision_count": state.get("revision_count", 0) + 1
     }
@@ -271,6 +289,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
