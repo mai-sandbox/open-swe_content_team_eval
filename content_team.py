@@ -169,7 +169,7 @@ def writer_revision_node(state: TeamState):
         "current_agent": "writer"
     }
 
-graph_builder = WorkflowGraph(TeamState)
+graph_builder = StateGraph(TeamState)
 
 # Add agent nodes
 graph_builder.add_node("researcher", research_agent_node)
@@ -213,7 +213,7 @@ graph_builder.add_conditional_edge(
     }
 )
 
-app = graph_builder.build()
+app = graph_builder.compile()
 
 def main():
     """Run the multi-agent content team."""
@@ -252,3 +252,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
