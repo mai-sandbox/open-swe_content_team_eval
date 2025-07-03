@@ -198,10 +198,11 @@ def writer_revision_node(state: TeamState):
     Provide an improved version.
     """)
     
-    response = model.invoke([system_msg])
+    messages = [system_msg] + state["messages"]
+    response = model.invoke(messages)
     
     return {
-        "messages": [response],
+        "messages": state["messages"] + [response],
         "draft_content": response.content,
         "current_agent": "writer"
     }
@@ -289,6 +290,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
