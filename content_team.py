@@ -165,8 +165,31 @@ def reviewer_agent_node(state: TeamState):
     }
 
 # Routing logic
+def route_from_researcher(state: TeamState) -> Literal["writer"]:
+    """Route from researcher to writer."""
+    return "writer"
+
+def route_from_writer(state: TeamState) -> Literal["reviewer"]:
+    """Route from writer to reviewer."""
+    return "reviewer"
+
+def route_from_reviewer(state: TeamState) -> Literal["writer_revision", "end"]:
+    """Route from reviewer based on feedback."""
+    feedback = state.get("feedback", "").lower()
+    revision_count = state.get("revision_count", 0)
+    
+    if "revision" in feedback and revision_count < 2:
+        return "writer_revision"
+    else:
+        return "end"
+
+def route_from_writer_revision(state: TeamState) -> Literal["reviewer"]:
+    """Route from writer revision back to reviewer."""
+    return "reviewer"
+
+# Legacy function for backward compatibility (not used in new routing)
 def route_to_next_agent(state: TeamState) -> Literal["writer", "reviewer", "writer_revision", "end"]:
-    """Route to next agent based on current state."""
+    """Legacy routing function - replaced by specific routing functions."""
     current = state.get("current_agent", "")
     
     if current == "researcher":
@@ -174,10 +197,8 @@ def route_to_next_agent(state: TeamState) -> Literal["writer", "reviewer", "writ
     elif current == "writer":
         return "reviewer"  
     elif current == "reviewer":
-        # Check if revision needed
         feedback = state.get("feedback", "").lower()
         revision_count = state.get("revision_count", 0)
-        
         if "revision" in feedback and revision_count < 2:
             return "writer_revision"
         else:
@@ -290,6 +311,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
