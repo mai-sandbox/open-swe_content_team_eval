@@ -333,46 +333,96 @@ def writer_agent_node(state: TeamState):
     }
 
 def reviewer_agent_node(state: TeamState):
-    """Reviewer agent provides feedback."""
-    model = create_reviewer_agent()
-    
-    system_msg = SystemMessage(content=f"""
-    You are a reviewer agent. Review this content: {state['draft_content']}
-    
-    Use the fact_check tool to verify accuracy.
-    Provide constructive feedback for improvement.
-    
-    If content needs major revision, send back to writer.
-    If content is good, approve for publication.
-    """)
-    
-    messages = [system_msg]
-    response = model.invoke(messages)
-    
-    # Handle tool calls if present
-    feedback_content = response.content
-    if response.tool_calls:
-        # Execute tool calls
-        tool_messages = []
-        for tool_call in response.tool_calls:
-            if tool_call["name"] == "fact_check":
-                tool_result = fact_check.invoke(tool_call["args"])
-                tool_messages.append(ToolMessage(
-                    content=str(tool_result),
-                    tool_call_id=tool_call["id"]
-                ))
+    """Reviewer agent provides feedback with error handling."""
+    try:
+        # Validate state
+        if not validate_state(state):
+            logging.error("Invalid state in reviewer_agent_node")
+            return {
+                "messages": state.get("messages", []) + [AIMessage(content="Error: Invalid state for reviewer agent")],
+                "current_agent": "reviewer",
+                "feedback": "Error: Could not review content due to invalid state",
+                "revision_count": state.get("revision_count", 0) + 1
+            }
         
-        # Get final response after tool execution
-        if tool_messages:
-            final_response = model.invoke(messages + [response] + tool_messages)
-            feedback_content = final_response.content
-    
-    return {
-        "messages": state["messages"] + [response],
-        "feedback": feedback_content,
-        "current_agent": "reviewer",
-        "revision_count": state.get("revision_count", 0) + 1
-    }
+        model = create_reviewer_agent()
+        task = safe_get_state_field(state, 'task', 'No task specified')
+        draft_content = safe_get_state_field(state, 'draft_content', 'No content to review')
+        revision_count = state.get('revision_count', 0)
+        
+        system_msg = SystemMessage(content=f"""
+        You are a content reviewer. Review this content for:
+        Task: {task}
+        Content: {draft_content}
+        
+        Use the fact_check tool to verify information.
+        Provide constructive feedback. If content needs revision, be specific about improvements needed.
+        Current revision count: {revision_count}
+        """)
+        
+        messages = [system_msg] + state["messages"]
+        
+        # Invoke model with error handling
+        try:
+            response = model.invoke(messages)
+        except Exception as e:
+            logging.error(f"Error invoking reviewer model: {e}")
+            error_response = AIMessage(content=f"Review failed: {str(e)}")
+            return {
+                "messages": state["messages"] + [error_response],
+                "current_agent": "reviewer",
+                "feedback": f"Error during review: {str(e)}",
+                "revision_count": state.get("revision_count", 0) + 1
+            }
+        
+        # Handle tool calls if present
+        feedback_content = response.content
+        if hasattr(response, 'tool_calls') and response.tool_calls:
+            try:
+                tool_messages = []
+                for tool_call in response.tool_calls:
+                    if tool_call['name'] == 'fact_check':
+                        try:
+                            result = fact_check.invoke(tool_call['args'])
+                            tool_messages.append(ToolMessage(
+                                content=str(result),
+                                tool_call_id=tool_call['id']
+                            ))
+                        except Exception as e:
+                            logging.error(f"Error executing fact_check tool: {e}")
+                            tool_messages.append(ToolMessage(
+                                content=f"Fact-check failed: {str(e)}",
+                                tool_call_id=tool_call['id']
+                            ))
+                
+                # Get final response after tool execution
+                try:
+                    if tool_messages:
+                        final_response = model.invoke(messages + [response] + tool_messages)
+                        feedback_content = final_response.content
+                except Exception as e:
+                    logging.error(f"Error getting final response from reviewer model: {e}")
+                    feedback_content = f"Review completed with errors: {str(e)}"
+                
+            except Exception as e:
+                logging.error(f"Error handling tool calls in reviewer agent: {e}")
+                feedback_content = f"Review completed with tool errors: {str(e)}"
+        
+        return {
+            "messages": state["messages"] + [response],
+            "feedback": feedback_content,
+            "current_agent": "reviewer",
+            "revision_count": state.get("revision_count", 0) + 1
+        }
+            
+    except Exception as e:
+        logging.error(f"Unexpected error in reviewer_agent_node: {e}")
+        return {
+            "messages": state.get("messages", []) + [AIMessage(content=f"Reviewer agent failed: {str(e)}")],
+            "current_agent": "reviewer",
+            "feedback": f"Critical error: {str(e)}",
+            "revision_count": state.get("revision_count", 0) + 1
+        }
 
 # Routing logic
 def route_from_researcher(state: TeamState) -> Literal["writer"]:
@@ -521,6 +571,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
