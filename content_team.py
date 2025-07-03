@@ -94,7 +94,7 @@ def create_research_agent():
     """Create research agent with error handling."""
     try:
         model = ChatAnthropic(model="claude-3-haiku-20240307", temperature=0.1)
-        return model.bind_tool([web_research])
+        return model.bind_tools([web_research])
     except Exception as e:
         logging.error(f"Error creating research agent: {e}")
         raise
@@ -603,6 +603,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
