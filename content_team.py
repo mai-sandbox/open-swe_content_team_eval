@@ -112,7 +112,7 @@ def create_reviewer_agent():
     """Create reviewer agent with error handling."""
     try:
         model = ChatAnthropic(model="claude-3-haiku-20240307", temperature=0.3)
-        return model.bind_tool([fact_check])
+        return model.bind_tools([fact_check])
     except Exception as e:
         logging.error(f"Error creating reviewer agent: {e}")
         raise
@@ -603,6 +603,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
