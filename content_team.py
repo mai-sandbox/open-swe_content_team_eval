@@ -113,11 +113,11 @@ def writer_agent_node(state: TeamState):
     Write a comprehensive article and then hand off to the reviewer.
     """)
     
-    messages = [system_msg] + state["messages"][-2:]  # Keep context short
+    messages = [system_msg] + state["messages"]
     response = model.invoke(messages)
     
     return {
-        "messages": [response],
+        "messages": state["messages"] + [response],
         "draft_content": response.content,
         "current_agent": "writer"
     }
@@ -289,6 +289,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
