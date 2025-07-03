@@ -74,10 +74,29 @@ def research_agent_node(state: TeamState):
     messages = [system_msg] + state["messages"]
     response = model.invoke(messages)
     
-    research_notes = "Research completed - see message for details"
+    # Handle tool calls if present
+    if response.tool_calls:
+        # Execute tool calls
+        tool_messages = []
+        for tool_call in response.tool_calls:
+            if tool_call["name"] == "web_research":
+                tool_result = web_research.invoke(tool_call["args"])
+                tool_messages.append(ToolMessage(
+                    content=str(tool_result),
+                    tool_call_id=tool_call["id"]
+                ))
+        
+        # Get final response after tool execution
+        if tool_messages:
+            final_response = model.invoke(messages + [response] + tool_messages)
+            research_notes = final_response.content
+        else:
+            research_notes = response.content
+    else:
+        research_notes = response.content
     
     return {
-        "messages": [response],
+        "messages": state["messages"] + [response],
         "research_notes": research_notes,
         "current_agent": "researcher"
     }
@@ -252,5 +271,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
