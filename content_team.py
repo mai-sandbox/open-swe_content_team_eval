@@ -98,8 +98,12 @@ def research_agent_node(state: TeamState):
     
     return {
         "messages": all_messages,
+        "task": state["task"],
         "research_notes": research_notes,
+        "draft_content": state.get("draft_content", ""),
+        "feedback": state.get("feedback", ""),
         "current_agent": "researcher"
+        "revision_count": state.get("revision_count", 0)
     }
 
 def writer_agent_node(state: TeamState):
@@ -291,6 +295,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
