@@ -120,13 +120,17 @@ def writer_agent_node(state: TeamState):
     Write a comprehensive article and then hand off to the reviewer.
     """)
     
-    messages = [system_msg] + state["messages"][-2:]  # Keep context short
+    messages = [system_msg] + state["messages"]  # Preserve full message context
     response = model.invoke(messages)
     
     return {
-        "messages": [response],
+        "messages": state["messages"] + [response],
         "draft_content": response.content,
-        "current_agent": "writer"
+        "current_agent": "writer",
+        "task": state["task"],
+        "research_notes": state.get("research_notes", ""),
+        "feedback": state.get("feedback", ""),
+        "revision_count": state.get("revision_count", 0)
     }
 
 def reviewer_agent_node(state: TeamState):
@@ -296,6 +300,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
