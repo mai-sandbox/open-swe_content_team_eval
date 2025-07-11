@@ -241,18 +241,6 @@ graph_builder.add_conditional_edges(
     }
 )
 
-# Add routing from reviewer to determine next step (revision or end)
-graph_builder.add_conditional_edges(
-    "writer",
-    route_to_next_agent,
-    {
-        "writer": "writer",
-        "reviewer": "reviewer",
-        "writer_revision": "writer_revision",
-        "end": END
-    }
-)
-
 app = graph_builder.compile()
 
 def main():
@@ -292,6 +280,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
