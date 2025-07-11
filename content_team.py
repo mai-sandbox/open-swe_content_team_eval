@@ -178,11 +178,18 @@ def reviewer_agent_node(state: TeamState):
         final_response = response
         feedback_content = response.content
     
+    # Only increment revision_count if revision is actually needed
+    current_revision_count = state.get("revision_count", 0)
+    if "revision" in feedback_content.lower():
+        new_revision_count = current_revision_count + 1
+    else:
+        new_revision_count = current_revision_count
+    
     return {
         "messages": state["messages"] + [final_response],
         "feedback": feedback_content,
         "current_agent": "reviewer",
-        "revision_count": state.get("revision_count", 0) + 1,
+        "revision_count": new_revision_count,
         "task": state["task"],
         "research_notes": state.get("research_notes", ""),
         "draft_content": state.get("draft_content", "")
@@ -311,6 +318,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
