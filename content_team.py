@@ -170,6 +170,10 @@ def writer_revision_node(state: TeamState):
         "current_agent": "writer"
     }
 
+# Create tool node for handling tool calls
+tools = [web_research, fact_check]
+tool_node = ToolNode(tools)
+
 graph_builder = StateGraph(TeamState)
 
 # Add agent nodes
@@ -253,6 +257,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
