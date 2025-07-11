@@ -181,6 +181,7 @@ graph_builder.add_node("researcher", research_agent_node)
 graph_builder.add_node("writer", writer_agent_node)
 graph_builder.add_node("reviewer", reviewer_agent_node)
 graph_builder.add_node("writer_revision", writer_revision_node)
+graph_builder.add_node("tools", tool_node)
 
 graph_builder.add_edge(START, "researcher")
 
@@ -257,6 +258,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
