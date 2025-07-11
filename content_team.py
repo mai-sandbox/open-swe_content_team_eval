@@ -2,7 +2,7 @@
 Multi-agent content creation team using LangGraph.
 """
 
-from typing import Annotated, TypedDict, Literal
+from typing import Annotated, TypedDict, Literal, List
 from dotenv import load_dotenv
 
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage
