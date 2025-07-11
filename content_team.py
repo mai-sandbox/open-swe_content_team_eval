@@ -115,19 +115,21 @@ def writer_agent_node(state: TeamState):
     """Writer agent creates content based on research."""
     model = create_writer_agent()
     
-    system_msg = SystemMessage(content=f"""
-    You are a writer agent. Create engaging content about: {state['task']}
+    system_msg = SystemMessage(content=f"""You are a writer agent. Create engaging content about: {state['task']}
+
+Use this research: {state['research_notes']}
+
+Write a comprehensive article and then hand off to the reviewer.""")
     
-    Use this research: {state['research_notes']}
-    
-    Write a comprehensive article and then hand off to the reviewer.
-    """)
-    
-    messages = [system_msg] + state["messages"][-2:]  # Keep context short
+    # Add system message to conversation flow and preserve full context
+    messages = state["messages"] + [system_msg]
     response = model.invoke(messages)
     
+    # Accumulate messages including system message and response
+    accumulated_messages = [system_msg, response]
+    
     return {
-        "messages": [response],
+        "messages": accumulated_messages,
         "draft_content": response.content,
         "current_agent": "writer"
     }
@@ -283,6 +285,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
