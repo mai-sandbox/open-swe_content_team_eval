@@ -74,10 +74,30 @@ def research_agent_node(state: TeamState):
     messages = [system_msg] + state["messages"]
     response = model.invoke(messages)
     
-    research_notes = "Research completed - see message for details"
+    # Handle tool calls if present
+    all_messages = [response]
+    research_notes = ""
+    
+    if hasattr(response, 'tool_calls') and response.tool_calls:
+        # Execute tool calls
+        for tool_call in response.tool_calls:
+            if tool_call['name'] == 'web_research':
+                tool_result = web_research(tool_call['args']['topic'])
+                research_notes = tool_result
+                # Create tool message for the conversation
+                from langchain_core.messages import ToolMessage
+                tool_message = ToolMessage(
+                    content=tool_result,
+                    tool_call_id=tool_call['id']
+                )
+                all_messages.append(tool_message)
+    
+    # If no tool was called, use default research notes
+    if not research_notes:
+        research_notes = "Research completed - see message for details"
     
     return {
-        "messages": [response],
+        "messages": all_messages,
         "research_notes": research_notes,
         "current_agent": "researcher"
     }
@@ -120,9 +140,28 @@ def reviewer_agent_node(state: TeamState):
     messages = [system_msg]
     response = model.invoke(messages)
     
+    # Handle tool calls if present
+    all_messages = [response]
+    feedback_content = response.content
+    
+    if hasattr(response, 'tool_calls') and response.tool_calls:
+        # Execute tool calls
+        for tool_call in response.tool_calls:
+            if tool_call['name'] == 'fact_check':
+                tool_result = fact_check(tool_call['args']['content'])
+                # Create tool message for the conversation
+                from langchain_core.messages import ToolMessage
+                tool_message = ToolMessage(
+                    content=tool_result,
+                    tool_call_id=tool_call['id']
+                )
+                all_messages.append(tool_message)
+                # Append tool result to feedback
+                feedback_content = f"{response.content}
+    
     return {
-        "messages": [response],
-        "feedback": response.content,
+        "messages": all_messages,
+        "feedback": feedback_content,
         "current_agent": "reviewer",
         "revision_count": state.get("revision_count", 0) + 1
     }
@@ -252,5 +291,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
