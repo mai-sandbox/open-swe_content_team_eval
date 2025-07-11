@@ -114,14 +114,20 @@ def reviewer_agent_node(state: TeamState):
     """Reviewer agent provides feedback."""
     model = create_reviewer_agent()
     
+    # First, call the fact_check tool directly on the draft content
+    fact_check_result = fact_check(state['draft_content'])
+    
     system_msg = SystemMessage(content=f"""
     You are a reviewer agent. Review this content: {state['draft_content']}
     
-    Use the fact_check tool to verify accuracy.
+    Here are the fact-check results: {fact_check_result}
+    
     Provide constructive feedback for improvement.
     
     If content needs major revision, send back to writer.
     If content is good, approve for publication.
+    
+    Base your feedback on the fact-check results and overall content quality.
     """)
     
     messages = [system_msg]
@@ -261,6 +267,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
