@@ -196,6 +196,9 @@ graph_builder.add_conditional_edge(
     }
 )
 
+# Tools route back to researcher after execution
+graph_builder.add_edge("tools", "researcher")
+
 graph_builder.add_conditional_edge(
     "writer", 
     route_to_next_agent,
@@ -257,6 +260,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
