@@ -195,6 +195,9 @@ def route_to_next_agent(state: TeamState) -> Literal["writer", "reviewer", "writ
             return "writer_revision"
         else:
             return "end"
+    elif current == "writer_revision":
+        # After revision, go back to reviewer for re-evaluation
+        return "reviewer"
     
     return "end"
 
@@ -306,6 +309,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
