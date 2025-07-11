@@ -205,7 +205,7 @@ graph_builder.add_conditional_edges(
 graph_builder.add_edge("tools", "researcher")
 
 # Writer doesn't use tools, so uses regular routing
-graph_builder.add_conditional_edge(
+graph_builder.add_conditional_edges(
     "writer", 
     route_to_next_agent,
     {
@@ -265,6 +265,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
