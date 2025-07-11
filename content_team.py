@@ -212,8 +212,12 @@ graph_builder.add_conditional_edges(
     }
 )
 
-# Tools route back to researcher after execution
-graph_builder.add_edge("tools", "researcher")
+# Tools route back to appropriate agent after execution
+graph_builder.add_conditional_edges(
+    "tools",
+    route_after_tools,
+    ["writer", "reviewer", "writer_revision", "end"]
+)
 
 # Writer doesn't use tools, so uses regular routing
 graph_builder.add_conditional_edges(
@@ -276,6 +280,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
