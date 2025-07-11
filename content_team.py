@@ -154,7 +154,7 @@ def route_to_next_agent(state: TeamState) -> Literal["writer", "reviewer", "writ
     
     return "end"
 
-def route_after_tools(state: TeamState) -> Literal["writer", "reviewer", "writer_revision", "end"]:
+def route_after_tools(state: TeamState) -> Literal["writer", "reviewer", "writer_revision", "__end__"]:
     """Route after tools are executed based on which agent called them."""
     current = state.get("current_agent", "")
     
@@ -163,7 +163,7 @@ def route_after_tools(state: TeamState) -> Literal["writer", "reviewer", "writer
     elif current == "reviewer":
         return "writer_revision"
     
-    return "end"
+    return "__end__"
 
 def writer_revision_node(state: TeamState):
     """Writer revises content based on feedback."""
@@ -279,6 +279,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
