@@ -56,7 +56,7 @@ def test_workflow_execution(app):
         print("✅ Test 4 PASSED: State maintained across transitions")
         print("✅ Test 5 PASSED: Final content generated successfully")
         
-        print(f"
+        print(f"\n📄 Final Content: {result.get('draft_content', 'No content')}")
         print(f"📋 Feedback: {result.get('feedback', 'No feedback')}")
         print(f"🔄 Revisions: {result.get('revision_count', 0)}")
         
@@ -86,8 +86,9 @@ def main():
     if not success:
         sys.exit(1)
     
-    print("
+    print("\n🎉 ALL TESTS PASSED! Multi-agent workflow is functioning correctly.")
 
 if __name__ == "__main__":
     main()
+
 
