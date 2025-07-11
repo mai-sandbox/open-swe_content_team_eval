@@ -50,7 +50,7 @@ def fact_check(content: str) -> str:
 # Initialize agents
 def create_research_agent():
     model = ChatAnthropic(model="claude-3-haiku-20240307", temperature=0.1)
-    return model.bind_tool([web_research])
+    return model.bind_tools([web_research])
 
 def create_writer_agent():
     model = ChatAnthropic(model="claude-3-haiku-20240307", temperature=0.7)
@@ -58,7 +58,7 @@ def create_writer_agent():
 
 def create_reviewer_agent():
     model = ChatAnthropic(model="claude-3-haiku-20240307", temperature=0.3)
-    return model.bind_tool([fact_check])
+    return model.bind_tools([fact_check])
 
 # Agent nodes
 def research_agent_node(state: TeamState):
@@ -303,6 +303,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
