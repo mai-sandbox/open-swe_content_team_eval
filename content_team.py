@@ -123,6 +123,7 @@ def reviewer_agent_node(state: TeamState):
     response = model.invoke(messages)
     
     return {
+        **state,
         "messages": [response],
         "feedback": response.content,
         "current_agent": "reviewer",
@@ -254,6 +255,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
