@@ -217,7 +217,7 @@ graph_builder.add_conditional_edge(
 )
 
 # Reviewer can call tools or go to next agent
-graph_builder.add_conditional_edge(
+graph_builder.add_conditional_edges(
     "reviewer",
     tools_condition,
     {
@@ -265,6 +265,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
