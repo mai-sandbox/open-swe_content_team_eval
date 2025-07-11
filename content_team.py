@@ -145,24 +145,45 @@ def reviewer_agent_node(state: TeamState):
 def route_to_next_agent(state: TeamState) -> Literal["writer", "reviewer", "writer_revision", "end"]:
     """Route to next agent based on current state."""
     current = state.get("current_agent", "")
+    revision_count = state.get("revision_count", 0)
     
     if current == "researcher":
         return "writer"
     elif current == "writer":
         return "reviewer"  
     elif current == "reviewer":
-        # Check if revision needed
+        # Enhanced revision detection logic
         feedback = state.get("feedback", "").lower()
-        revision_count = state.get("revision_count", 0)
         
-        if "revision" in feedback and revision_count < 2:
+        # Multiple indicators that revision is needed
+        revision_keywords = [
+            "revision", "revise", "rewrite", "improve", "fix", "correct",
+            "change", "modify", "update", "needs work", "not good enough",
+            "insufficient", "unclear", "confusing", "inaccurate", "missing",
+            "add more", "expand", "clarify", "better", "enhance"
+        ]
+        
+        # Check if any revision keywords are present and revision limit not exceeded
+        needs_revision = any(keyword in feedback for keyword in revision_keywords)
+        
+        if needs_revision and revision_count < 2:
             return "writer_revision"
         else:
             return "end"
-    
-    return "end"
+    elif current == "writer_revision":
+        # After revision, send back to reviewer for re-evaluation
+        return "reviewer"
+    else:
+        # Default case for any unexpected current_agent values
+        return "end"
 
 def writer_revision_node(state: TeamState):
+    """Writer revises content based on feedback."""
+    model = create_writer_agent()
+    
+    system_msg = SystemMessage(content=f"""
+    Revise your content based on this feedback: {state['feedback']}
+    
     """Writer revises content based on feedback."""
     model = create_writer_agent()
     
@@ -267,6 +288,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
