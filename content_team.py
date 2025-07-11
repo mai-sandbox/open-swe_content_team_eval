@@ -63,7 +63,7 @@ def create_reviewer_agent():
 # Agent nodes
 def research_agent_node(state: TeamState):
     """Research agent gathers information."""
-    model = create_research_agent()
+    model = create_research_agent()  # This model is bound to web_research tool
     
     system_msg = SystemMessage(content=f"""
     You are a research agent. Your task is to research: {state['task']}
@@ -74,13 +74,18 @@ def research_agent_node(state: TeamState):
     
     messages = [system_msg] + state["messages"]
     response = model.invoke(messages)
-    
-    research_notes = "Research completed - see message for details"
-    
+
+    # Extract research notes from response content if available
+    research_notes = response.content if hasattr(response, 'content') and response.content else "Research in progress"
+
     return {
         "messages": [response],
         "research_notes": research_notes,
-        "current_agent": "researcher"
+        "current_agent": "researcher",
+        "task": state["task"],
+        "draft_content": state.get("draft_content", ""),
+        "feedback": state.get("feedback", ""),
+        "revision_count": state.get("revision_count", 0)
     }
 
 def writer_agent_node(state: TeamState):
@@ -260,6 +265,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
