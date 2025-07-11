@@ -213,6 +213,17 @@ graph_builder.add_conditional_edge(
     }
 )
 
+graph_builder.add_conditional_edge(
+    "writer_revision",
+    route_to_next_agent,
+    {
+        "writer": "writer",
+        "reviewer": "reviewer",
+        "writer_revision": "writer_revision",
+        "end": END
+    }
+)
+
 app = graph_builder.build()
 
 def main():
@@ -252,5 +263,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
