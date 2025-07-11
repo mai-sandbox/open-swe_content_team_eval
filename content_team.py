@@ -236,8 +236,8 @@ graph_builder.add_conditional_edges(
     "reviewer",
     tools_condition,
     {
-        "tools": "tools",
-        "__end__": "writer_revision"
+        "tools": "tools", 
+        "continue": "writer_revision"
     }
 )
 
@@ -280,6 +280,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
