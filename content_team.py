@@ -216,7 +216,7 @@ graph_builder.add_conditional_edges(
 graph_builder.add_conditional_edges(
     "tools",
     route_after_tools,
-    ["writer", "reviewer", "writer_revision", "end"]
+    ["writer", "reviewer", "writer_revision", "__end__"]
 )
 
 # Writer doesn't use tools, so uses regular routing
@@ -279,6 +279,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
