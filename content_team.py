@@ -155,6 +155,7 @@ def reviewer_agent_node(state: TeamState):
         final_response = model.invoke(messages)
         
         return {
+            **state,  # Preserve all existing state fields
             "messages": [final_response],
             "feedback": final_response.content,
             "current_agent": "reviewer",
@@ -162,6 +163,7 @@ def reviewer_agent_node(state: TeamState):
         }
     
     return {
+        **state,  # Preserve all existing state fields
         "messages": [response],
         "feedback": response.content,
         "current_agent": "reviewer",
@@ -304,6 +306,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
