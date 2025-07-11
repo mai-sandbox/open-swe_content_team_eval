@@ -138,18 +138,20 @@ def reviewer_agent_node(state: TeamState):
     """Reviewer agent provides feedback."""
     model = create_reviewer_agent()
     
-    system_msg = SystemMessage(content=f"""
-    You are a reviewer agent. Review this content: {state['draft_content']}
+    system_msg = SystemMessage(content=f"""You are a reviewer agent. Review this content: {state['draft_content']}
+
+Use the fact_check tool to verify accuracy.
+Provide constructive feedback for improvement.
+
+If content needs major revision, send back to writer.
+If content is good, approve for publication.""")
     
-    Use the fact_check tool to verify accuracy.
-    Provide constructive feedback for improvement.
-    
-    If content needs major revision, send back to writer.
-    If content is good, approve for publication.
-    """)
-    
-    messages = [system_msg] + state["messages"]
+    # Add system message to conversation flow instead of creating isolated instance
+    messages = state["messages"] + [system_msg]
     response = model.invoke(messages)
+    
+    # Accumulate all messages including system message and response
+    accumulated_messages = [system_msg, response]
     
     # Check if the response contains tool calls
     if hasattr(response, 'tool_calls') and response.tool_calls:
@@ -169,13 +171,20 @@ def reviewer_agent_node(state: TeamState):
         # Add tool results to messages and get final response
         if tool_messages:
             final_messages = messages + [response] + tool_messages
-            response = model.invoke(final_messages)
-    
-    # Extract feedback content for state management
-    feedback_content = response.content if hasattr(response, 'content') else str(response)
+            final_response = model.invoke(final_messages)
+            
+            # Update accumulated messages with tool calls and final response
+            accumulated_messages.extend(tool_messages + [final_response])
+            
+            # Extract feedback content for state management
+            feedback_content = final_response.content if hasattr(final_response, 'content') else str(final_response)
+        else:
+            feedback_content = response.content if hasattr(response, 'content') else str(response)
+    else:
+        feedback_content = response.content if hasattr(response, 'content') else str(response)
     
     return {
-        "messages": [response],
+        "messages": accumulated_messages,
         "feedback": feedback_content,
         "current_agent": "reviewer",
         "revision_count": state.get("revision_count", 0) + 1
@@ -285,6 +294,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
