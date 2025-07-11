@@ -172,23 +172,75 @@ def reviewer_agent_node(state: TeamState):
 
 # Routing logic
 def route_to_next_agent(state: TeamState) -> Literal["writer", "reviewer", "writer_revision", "end"]:
-    """Route to next agent based on current state."""
-    current = state.get("current_agent", "")
+    """
+    Route to next agent based on current state with comprehensive validation and edge case handling.
     
+    Args:
+        state: Current team state containing agent information and workflow data
+        
+    Returns:
+        Next agent to route to: "writer", "reviewer", "writer_revision", or "end"
+    """
+    # Validate state structure and required fields
+    if not isinstance(state, dict):
+        print(f"⚠️  Warning: Invalid state type {type(state)}, defaulting to end workflow")
+        return "end"
+    
+    # Get current agent with validation
+    current = state.get("current_agent", "").strip().lower()
+    
+    # Handle missing or empty current_agent
+    if not current:
+        print("⚠️  Warning: Missing or empty current_agent, defaulting to researcher workflow")
+        return "writer"  # Assume we're starting from researcher
+    
+    # Validate current_agent is a known agent type
+    valid_agents = {"researcher", "writer", "reviewer", "writer_revision"}
+    if current not in valid_agents:
+        print(f"⚠️  Warning: Invalid current_agent '{current}', valid agents: {valid_agents}")
+        return "end"
+    
+    print(f"🔄 Routing from agent: {current}")
+    
+    # Route based on current agent
     if current == "researcher":
+        print("📝 Researcher → Writer")
         return "writer"
+        
     elif current == "writer":
-        return "reviewer"  
+        print("👀 Writer → Reviewer")
+        return "reviewer"
+        
     elif current == "reviewer":
-        # Check if revision needed
+        # Enhanced revision logic with better validation
         feedback = state.get("feedback", "").lower()
         revision_count = state.get("revision_count", 0)
         
-        if "revision" in feedback and revision_count < 2:
+        # Validate revision_count is a number
+        if not isinstance(revision_count, int):
+            print(f"⚠️  Warning: Invalid revision_count type {type(revision_count)}, treating as 0")
+            revision_count = 0
+        
+        # Check for revision indicators in feedback (more comprehensive)
+        revision_indicators = ["revision", "revise", "rewrite", "improve", "fix", "change", "modify"]
+        needs_revision = any(indicator in feedback for indicator in revision_indicators)
+        
+        if needs_revision and revision_count < 2:
+            print(f"🔄 Reviewer → Writer Revision (attempt {revision_count + 1}/2)")
             return "writer_revision"
         else:
+            if revision_count >= 2:
+                print("✅ Maximum revisions reached, ending workflow")
+            else:
+                print("✅ Content approved, ending workflow")
             return "end"
+            
+    elif current == "writer_revision":
+        print("👀 Writer Revision → Reviewer")
+        return "reviewer"
     
+    # Fallback for any unhandled cases
+    print(f"⚠️  Warning: Unhandled routing case for agent '{current}', ending workflow")
     return "end"
 
 def writer_revision_node(state: TeamState):
@@ -307,6 +359,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
