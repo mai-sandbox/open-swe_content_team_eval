@@ -99,9 +99,13 @@ def research_agent_node(state: TeamState):
         research_notes = "Research completed - see message for details"
     
     return {
-        "messages": [final_response],
+        "messages": state["messages"] + [final_response],
         "research_notes": research_notes,
-        "current_agent": "researcher"
+        "current_agent": "researcher",
+        "task": state["task"],
+        "draft_content": state.get("draft_content", ""),
+        "feedback": state.get("feedback", ""),
+        "revision_count": state.get("revision_count", 0)
     }
 
 def writer_agent_node(state: TeamState):
@@ -292,6 +296,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
