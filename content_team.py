@@ -226,7 +226,7 @@ graph_builder.add_conditional_edges(
     }
 )
 
-app = graph_builder.build()
+app = graph_builder.compile()
 
 def main():
     """Run the multi-agent content team."""
@@ -265,6 +265,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
