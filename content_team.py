@@ -64,15 +64,17 @@ def research_agent_node(state: TeamState):
     """Research agent gathers information."""
     model = create_research_agent()
     
-    system_msg = SystemMessage(content=f"""
-    You are a research agent. Your task is to research: {state['task']}
+    system_msg = SystemMessage(content=f"""You are a research agent. Your task is to research: {state['task']}
+
+Use the web_research tool to gather information.
+Then pass your findings to the writer agent.""")
     
-    Use the web_research tool to gather information.
-    Then pass your findings to the writer agent.
-    """)
-    
-    messages = [system_msg] + state["messages"]
+    # Add system message to conversation flow instead of creating isolated instance
+    messages = state["messages"] + [system_msg]
     response = model.invoke(messages)
+    
+    # Accumulate all messages including system message and response
+    accumulated_messages = [system_msg, response]
     
     # Check if the response contains tool calls
     if hasattr(response, 'tool_calls') and response.tool_calls:
@@ -89,21 +91,23 @@ def research_agent_node(state: TeamState):
                 )
                 tool_messages.append(tool_message)
         
-        # Add tool results to messages and get final response
+        # Add tool messages to conversation and get final response
         if tool_messages:
             messages_with_tools = messages + [response] + tool_messages
             final_response = model.invoke(messages_with_tools)
-            research_notes = f"Research completed with tool execution - see messages for details"
+            
+            # Update accumulated messages with tool calls and final response
+            accumulated_messages.extend(tool_messages + [final_response])
+            
             return {
-                "messages": messages_with_tools + [final_response],
-                "research_notes": research_notes,
+                "messages": accumulated_messages,
+                "research_notes": final_response.content,
                 "current_agent": "researcher"
             }
     
-    research_notes = "Research completed - see message for details"
     return {
-        "messages": [response],
-        "research_notes": research_notes,
+        "messages": accumulated_messages,
+        "research_notes": response.content,
         "current_agent": "researcher"
     }
 
@@ -279,6 +283,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
