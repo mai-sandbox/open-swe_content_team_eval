@@ -215,19 +215,22 @@ def writer_revision_node(state: TeamState):
     """Writer revises content based on feedback."""
     model = create_writer_agent()
     
-    system_msg = SystemMessage(content=f"""
-    Revise your content based on this feedback: {state['feedback']}
+    system_msg = SystemMessage(content=f"""Revise your content based on this feedback: {state['feedback']}
+
+Original content: {state['draft_content']}
+Research notes: {state['research_notes']}
+
+Provide an improved version.""")
     
-    Original content: {state['draft_content']}
-    Research notes: {state['research_notes']}
+    # Add system message to conversation flow and preserve context
+    messages = state["messages"] + [system_msg]
+    response = model.invoke(messages)
     
-    Provide an improved version.
-    """)
-    
-    response = model.invoke([system_msg])
+    # Accumulate messages including system message and response
+    accumulated_messages = [system_msg, response]
     
     return {
-        "messages": [response],
+        "messages": accumulated_messages,
         "draft_content": response.content,
         "current_agent": "writer",
         "revision_count": state.get("revision_count", 0) + 1
@@ -294,6 +297,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
