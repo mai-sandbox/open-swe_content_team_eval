@@ -127,7 +127,7 @@ def writer_agent_node(state: TeamState):
         "research_notes": state.get("research_notes", ""),
         "draft_content": response.content,
         "feedback": state.get("feedback", ""),
-        "current_agent": "writer"
+        "current_agent": "writer",
         "revision_count": state.get("revision_count", 0)
     }
 
@@ -299,6 +299,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
