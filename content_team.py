@@ -227,40 +227,18 @@ graph_builder.add_node("writer_revision", writer_revision_node)
 
 graph_builder.add_edge(START, "researcher")
 
-# Add conditional routing
-graph_builder.add_conditional_edge(
-    "researcher",
-    route_to_next_agent,
-    {
-        "writer": "writer",
-        "reviewer": "reviewer",
-        "writer_revision": "writer_revision",
-        "end": END
-    }
-)
-
-graph_builder.add_conditional_edge(
-    "writer", 
-    route_to_next_agent,
-    {
-        "writer": "writer",
-        "reviewer": "reviewer", 
-        "writer_revision": "writer_revision",
-        "end": END
-    }
-)
-
+# Linear workflow: researcher -> writer -> reviewer -> (conditional) writer_revision or END
+graph_builder.add_edge("researcher", "writer")
+graph_builder.add_edge("writer", "reviewer")
 graph_builder.add_conditional_edge(
     "reviewer",
     route_to_next_agent,
     {
-        "writer": "writer",
-        "reviewer": "reviewer",
         "writer_revision": "writer_revision", 
         "end": END
     }
 )
-
+graph_builder.add_edge("writer_revision", "reviewer")
 app = graph_builder.build()
 
 def main():
@@ -300,6 +278,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
