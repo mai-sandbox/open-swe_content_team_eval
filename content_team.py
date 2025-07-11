@@ -221,9 +221,13 @@ def writer_revision_node(state: TeamState):
     response = model.invoke([system_msg])
     
     return {
-        "messages": [response],
+        "messages": state["messages"] + [response],
         "draft_content": response.content,
-        "current_agent": "writer"
+        "current_agent": "writer",
+        "task": state["task"],
+        "research_notes": state.get("research_notes", ""),
+        "feedback": state.get("feedback", ""),
+        "revision_count": state.get("revision_count", 0)
     }
 
 graph_builder = StateGraph(TeamState)
@@ -303,6 +307,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
