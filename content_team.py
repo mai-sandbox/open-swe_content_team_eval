@@ -139,6 +139,25 @@ def reviewer_agent_node(state: TeamState):
     messages = [system_msg]
     response = model.invoke(messages)
     
+    # Handle tool calls if present
+    if hasattr(response, 'tool_calls') and response.tool_calls:
+        # Execute tool calls
+        messages.append(response)
+        for tool_call in response.tool_calls:
+            if tool_call['name'] == 'fact_check':
+                tool_result = fact_check(tool_call['args']['content'])
+                messages.append(AIMessage(content=f"Tool result: {tool_result}"))
+        
+        # Get final response after tool execution
+        final_response = model.invoke(messages)
+        
+        return {
+            "messages": [final_response],
+            "feedback": final_response.content,
+            "current_agent": "reviewer",
+            "revision_count": state.get("revision_count", 0) + 1
+        }
+    
     return {
         "messages": [response],
         "feedback": response.content,
@@ -282,6 +301,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
