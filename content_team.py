@@ -77,6 +77,7 @@ def research_agent_node(state: TeamState):
     research_notes = "Research completed - see message for details"
     
     return {
+        **state,
         "messages": [response],
         "research_notes": research_notes,
         "current_agent": "researcher"
@@ -252,5 +253,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
