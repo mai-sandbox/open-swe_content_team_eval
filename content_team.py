@@ -141,10 +141,14 @@ def reviewer_agent_node(state: TeamState):
     You are a reviewer agent. Review this content: {state['draft_content']}
     
     Use the fact_check tool to verify accuracy.
-    Provide constructive feedback for improvement.
+    Provide constructive feedback for improvement. 
     
-    If content needs major revision, send back to writer.
-    If content is good, approve for publication.
+    IMPORTANT: If the content needs improvement or revision, you MUST include the word "revision" in your feedback.
+    If the content is satisfactory and ready for publication, do NOT include the word "revision" in your feedback.
+    
+    Examples:
+    - If content needs work: "This content requires revision because..."
+    - If content is good: "This content is well-written and ready for publication."
     """)
     
     messages = [system_msg]
@@ -307,6 +311,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
