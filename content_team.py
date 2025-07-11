@@ -192,7 +192,7 @@ graph_builder.add_edge(START, "researcher")
 
 # Add conditional routing
 # Researcher can call tools or go to next agent
-graph_builder.add_conditional_edge(
+graph_builder.add_conditional_edges(
     "researcher",
     tools_condition,
     {
@@ -265,6 +265,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
