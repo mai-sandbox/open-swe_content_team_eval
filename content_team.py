@@ -175,10 +175,13 @@ def reviewer_agent_node(state: TeamState):
         feedback_content = response.content
     
     return {
-        "messages": [final_response],
+        "messages": state["messages"] + [final_response],
         "feedback": feedback_content,
         "current_agent": "reviewer",
-        "revision_count": state.get("revision_count", 0) + 1
+        "revision_count": state.get("revision_count", 0) + 1,
+        "task": state["task"],
+        "research_notes": state.get("research_notes", ""),
+        "draft_content": state.get("draft_content", "")
     }
 
 # Routing logic
@@ -300,6 +303,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
