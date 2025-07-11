@@ -210,14 +210,13 @@ graph_builder.add_conditional_edge(
     }
 )
 
+# Reviewer can call tools or go to next agent
 graph_builder.add_conditional_edge(
     "reviewer",
-    route_to_next_agent,
+    tools_condition,
     {
-        "writer": "writer",
-        "reviewer": "reviewer",
-        "writer_revision": "writer_revision", 
-        "end": END
+        "tools": "tools",
+        "__end__": "writer_revision"
     }
 )
 
@@ -260,6 +259,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
