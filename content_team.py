@@ -207,6 +207,7 @@ def writer_revision_node(state: TeamState):
     response = model.invoke([system_msg])
     
     return {
+        **state,  # Preserve all existing state fields
         "messages": [response],
         "draft_content": response.content,
         "current_agent": "writer"
@@ -306,6 +307,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
