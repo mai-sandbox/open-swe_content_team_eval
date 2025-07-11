@@ -230,9 +230,7 @@ graph_builder.add_conditional_edge(
     "researcher",
     route_to_next_agent,
     {
-        "writer": "writer",
-        "reviewer": "reviewer",
-        "writer_revision": "writer_revision",
+        "writer": "writer", 
         "end": END
     }
 )
@@ -241,9 +239,7 @@ graph_builder.add_conditional_edge(
     "writer", 
     route_to_next_agent,
     {
-        "writer": "writer",
         "reviewer": "reviewer", 
-        "writer_revision": "writer_revision",
         "end": END
     }
 )
@@ -252,8 +248,6 @@ graph_builder.add_conditional_edge(
     "reviewer",
     route_to_next_agent,
     {
-        "writer": "writer",
-        "reviewer": "reviewer",
         "writer_revision": "writer_revision", 
         "end": END
     }
@@ -298,6 +292,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
