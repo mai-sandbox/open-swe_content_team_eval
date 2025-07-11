@@ -88,6 +88,7 @@ def research_agent_node(state: TeamState):
         research_notes = tool_result if 'tool_result' in locals() else "Research completed - see message for details"
         
         return {
+            **state,  # Preserve all existing state fields
             "messages": [final_response],
             "research_notes": research_notes,
             "current_agent": "researcher"
@@ -96,6 +97,7 @@ def research_agent_node(state: TeamState):
     research_notes = "Research completed - see message for details"
     
     return {
+        **state,  # Preserve all existing state fields
         "messages": [response],
         "research_notes": research_notes,
         "current_agent": "researcher"
@@ -301,6 +303,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
