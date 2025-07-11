@@ -248,7 +248,18 @@ graph_builder.add_conditional_edges(
     tools_condition,
     {
         "tools": "tools",
-        "continue": "writer_revision"  # Default to revision after review
+    }
+)
+
+# Add fallback routing for reviewer when no tools needed
+graph_builder.add_conditional_edges(
+    "reviewer",
+    route_to_next_agent,
+    {
+        "writer": "writer",
+        "reviewer": "reviewer", 
+        "writer_revision": "writer_revision",
+        "end": END
     }
 )
 
@@ -303,6 +314,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
