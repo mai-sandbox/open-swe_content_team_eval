@@ -214,7 +214,8 @@ def writer_revision_node(state: TeamState):
     return {
         "messages": [response],
         "draft_content": response.content,
-        "current_agent": "writer"
+        "current_agent": "writer",
+        "revision_count": state.get("revision_count", 0) + 1
     }
 
 graph_builder = StateGraph(TeamState)
@@ -278,6 +279,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
