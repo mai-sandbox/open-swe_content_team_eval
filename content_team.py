@@ -64,17 +64,22 @@ def research_agent_node(state: TeamState):
     """Research agent gathers information."""
     model = create_research_agent()
     
+    # First, call the web_research tool directly
+    research_result = web_research(state['task'])
+    
     system_msg = SystemMessage(content=f"""
     You are a research agent. Your task is to research: {state['task']}
     
-    Use the web_research tool to gather information.
-    Then pass your findings to the writer agent.
+    Here are the research findings: {research_result}
+    
+    Summarize these findings and prepare them for the writer agent.
     """)
     
     messages = [system_msg] + state["messages"]
     response = model.invoke(messages)
     
-    research_notes = "Research completed - see message for details"
+    # Store the actual research results
+    research_notes = research_result
     
     return {
         **state,
@@ -256,6 +261,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
