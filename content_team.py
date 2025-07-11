@@ -142,12 +142,35 @@ def reviewer_agent_node(state: TeamState):
     If content is good, approve for publication.
     """)
     
-    messages = [system_msg]
+    messages = [system_msg] + state["messages"]
     response = model.invoke(messages)
+    
+    # Check if the response contains tool calls
+    if hasattr(response, 'tool_calls') and response.tool_calls:
+        # Execute tool calls and collect results
+        tool_messages = []
+        for tool_call in response.tool_calls:
+            if tool_call['name'] == 'fact_check':
+                # Execute the fact_check tool
+                tool_result = fact_check.invoke(tool_call['args'])
+                # Create a ToolMessage with the result
+                tool_message = ToolMessage(
+                    content=tool_result,
+                    tool_call_id=tool_call['id']
+                )
+                tool_messages.append(tool_message)
+        
+        # Add tool results to messages and get final response
+        if tool_messages:
+            final_messages = messages + [response] + tool_messages
+            response = model.invoke(final_messages)
+    
+    # Extract feedback content for state management
+    feedback_content = response.content if hasattr(response, 'content') else str(response)
     
     return {
         "messages": [response],
-        "feedback": response.content,
+        "feedback": feedback_content,
         "current_agent": "reviewer",
         "revision_count": state.get("revision_count", 0) + 1
     }
@@ -277,6 +300,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
