@@ -74,8 +74,33 @@ def research_agent_node(state: TeamState):
     messages = [system_msg] + state["messages"]
     response = model.invoke(messages)
     
-    research_notes = "Research completed - see message for details"
+    # Check if the response contains tool calls
+    if hasattr(response, 'tool_calls') and response.tool_calls:
+        # Execute tool calls and collect results
+        tool_messages = []
+        for tool_call in response.tool_calls:
+            if tool_call['name'] == 'web_research':
+                # Execute the web_research tool
+                tool_result = web_research.invoke(tool_call['args'])
+                # Create a ToolMessage with the result
+                tool_message = ToolMessage(
+                    content=tool_result,
+                    tool_call_id=tool_call['id']
+                )
+                tool_messages.append(tool_message)
+        
+        # Add tool results to messages and get final response
+        if tool_messages:
+            messages_with_tools = messages + [response] + tool_messages
+            final_response = model.invoke(messages_with_tools)
+            research_notes = f"Research completed with tool execution - see messages for details"
+            return {
+                "messages": messages_with_tools + [final_response],
+                "research_notes": research_notes,
+                "current_agent": "researcher"
+            }
     
+    research_notes = "Research completed - see message for details"
     return {
         "messages": [response],
         "research_notes": research_notes,
@@ -252,6 +277,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
