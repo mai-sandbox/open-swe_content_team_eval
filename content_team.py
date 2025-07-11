@@ -247,7 +247,8 @@ graph_builder.add_conditional_edges(
     "reviewer",
     tools_condition,
     {
-        "tools": "tools"
+        "tools": "tools",
+        "continue": route_to_next_agent
     }
 )
 
@@ -290,6 +291,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
