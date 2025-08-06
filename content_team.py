@@ -147,15 +147,39 @@ def reviewer_agent_node(state: TeamState):
     If content is good, approve for publication.
     """)
     
-    messages = [system_msg]
+    messages = [system_msg] + state["messages"][-2:]  # Keep recent context
     response = model.invoke(messages)
     
-    return {
-        "messages": [response],
-        "feedback": response.content,
-        "current_agent": "reviewer",
-        "revision_count": state.get("revision_count", 0) + 1
-    }
+    # Check if the model wants to use tools
+    if response.tool_calls:
+        # Process tool calls using the fact_check tool
+        tool_messages = []
+        for tool_call in response.tool_calls:
+            if tool_call["name"] == "fact_check":
+                tool_result = fact_check.invoke(tool_call["args"])
+                tool_msg = ToolMessage(
+                    content=str(tool_result),
+                    tool_call_id=tool_call["id"]
+                )
+                tool_messages.append(tool_msg)
+        
+        # Get final response after tool execution
+        final_messages = messages + [response] + tool_messages
+        final_response = model.invoke(final_messages)
+        
+        return {
+            "messages": [response] + tool_messages + [final_response],
+            "feedback": final_response.content,
+            "current_agent": "reviewer",
+            "revision_count": state.get("revision_count", 0) + 1
+        }
+    else:
+        return {
+            "messages": [response],
+            "feedback": response.content,
+            "current_agent": "reviewer",
+            "revision_count": state.get("revision_count", 0) + 1
+        }
 
 # Routing logic
 def route_to_next_agent(state: TeamState) -> Literal["writer", "reviewer", "writer_revision", "end"]:
@@ -282,6 +306,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
