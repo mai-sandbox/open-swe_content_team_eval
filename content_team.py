@@ -112,9 +112,13 @@ def writer_agent_node(state: TeamState):
     response = model.invoke(messages)
     
     return {
-        "messages": [response],
+        "messages": state["messages"] + [response],
+        "task": state["task"],
+        "research_notes": state["research_notes"],
         "draft_content": response.content,
-        "current_agent": "writer"
+        "feedback": state.get("feedback", ""),
+        "current_agent": "writer",
+        "revision_count": state.get("revision_count", 0)
     }
 
 def reviewer_agent_node(state: TeamState):
@@ -266,6 +270,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
