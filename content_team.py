@@ -180,7 +180,7 @@ graph_builder.add_node("writer_revision", writer_revision_node)
 graph_builder.add_edge(START, "researcher")
 
 # Add conditional routing
-graph_builder.add_conditional_edge(
+graph_builder.add_conditional_edges(
     "researcher",
     route_to_next_agent,
     {
@@ -252,6 +252,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
