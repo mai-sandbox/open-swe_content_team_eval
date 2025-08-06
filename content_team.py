@@ -80,13 +80,37 @@ def research_agent_node(state: TeamState):
     messages = [system_msg] + state["messages"]
     response = model.invoke(messages)
     
-    research_notes = "Research completed - see message for details"
-    
-    return {
-        "messages": [response],
-        "research_notes": research_notes,
-        "current_agent": "researcher"
-    }
+    # Check if the model wants to use tools
+    if response.tool_calls:
+        # Process tool calls using the research tool node
+        tool_messages = []
+        for tool_call in response.tool_calls:
+            if tool_call["name"] == "web_research":
+                tool_result = web_research.invoke(tool_call["args"])
+                tool_msg = ToolMessage(
+                    content=str(tool_result),
+                    tool_call_id=tool_call["id"]
+                )
+                tool_messages.append(tool_msg)
+        
+        # Get final response after tool execution
+        final_messages = messages + [response] + tool_messages
+        final_response = model.invoke(final_messages)
+        
+        research_notes = str(tool_result) if tool_messages else "Research completed - see message for details"
+        
+        return {
+            "messages": [response] + tool_messages + [final_response],
+            "research_notes": research_notes,
+            "current_agent": "researcher"
+        }
+    else:
+        research_notes = "Research completed - see message for details"
+        return {
+            "messages": [response],
+            "research_notes": research_notes,
+            "current_agent": "researcher"
+        }
 
 def writer_agent_node(state: TeamState):
     """Writer agent creates content based on research."""
@@ -258,6 +282,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
