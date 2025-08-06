@@ -48,6 +48,10 @@ def fact_check(content: str) -> str:
         return "Content too short to verify - needs more detail"
     return "Fact-check complete: Content appears accurate based on available information"
 
+# Create tool nodes
+research_tool_node = ToolNode([web_research])
+fact_check_tool_node = ToolNode([fact_check])
+
 # Initialize agents
 def create_research_agent():
     model = ChatAnthropic(model="claude-3-haiku-20240307", temperature=0.1)
@@ -254,6 +258,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
