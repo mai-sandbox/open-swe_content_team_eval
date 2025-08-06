@@ -74,12 +74,26 @@ def research_agent_node(state: TeamState):
     messages = [system_msg] + state["messages"]
     response = model.invoke(messages)
     
-    research_notes = "Research completed - see message for details"
+    # Extract research content from tool responses
+    research_notes = ""
+    if hasattr(response, 'tool_calls') and response.tool_calls:
+        # If there are tool calls, invoke them and get results
+        from langgraph.prebuilt import ToolNode
+        tool_node = ToolNode([web_research])
+        tool_messages = tool_node.invoke({"messages": [response]})
+        research_notes = "\n".join([msg.content for msg in tool_messages["messages"] if hasattr(msg, 'content')])
+    else:
+        # Fallback to response content if no tools were called
+        research_notes = response.content
     
     return {
-        "messages": [response],
+        "messages": state["messages"] + [response],
+        "task": state["task"],
         "research_notes": research_notes,
-        "current_agent": "researcher"
+        "draft_content": state.get("draft_content", ""),
+        "feedback": state.get("feedback", ""),
+        "current_agent": "researcher",
+        "revision_count": state.get("revision_count", 0)
     }
 
 def writer_agent_node(state: TeamState):
@@ -252,6 +266,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
