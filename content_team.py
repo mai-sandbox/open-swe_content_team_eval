@@ -138,9 +138,25 @@ def reviewer_agent_node(state: TeamState):
     messages = [system_msg]
     response = model.invoke(messages)
     
+    # Process fact-checking tool calls if present
+    fact_check_results = ""
+    if hasattr(response, 'tool_calls') and response.tool_calls:
+        from langgraph.prebuilt import ToolNode
+        tool_node = ToolNode([fact_check])
+        tool_messages = tool_node.invoke({"messages": [response]})
+        fact_check_results = "\n".join([msg.content for msg in tool_messages["messages"] if hasattr(msg, 'content')])
+    
+    # Combine response content with fact-check results for comprehensive feedback
+    feedback_content = response.content
+    if fact_check_results:
+        feedback_content += f"\n\nFact-check results: {fact_check_results}"
+    
     return {
-        "messages": [response],
-        "feedback": response.content,
+        "messages": state["messages"] + [response],
+        "task": state["task"],
+        "research_notes": state["research_notes"],
+        "draft_content": state["draft_content"],
+        "feedback": feedback_content,
         "current_agent": "reviewer",
         "revision_count": state.get("revision_count", 0) + 1
     }
@@ -270,6 +286,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
