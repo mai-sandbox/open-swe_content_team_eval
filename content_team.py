@@ -177,7 +177,7 @@ graph_builder.add_node("writer", writer_agent_node)
 graph_builder.add_node("reviewer", reviewer_agent_node)
 graph_builder.add_node("writer_revision", writer_revision_node)
 
-graph_builder.add_conditional_edge(START, "researcher")
+graph_builder.add_edge(START, "researcher")
 
 # Add conditional routing
 graph_builder.add_conditional_edge(
@@ -252,5 +252,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
