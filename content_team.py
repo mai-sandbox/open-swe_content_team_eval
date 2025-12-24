@@ -2,13 +2,13 @@
 Multi-agent content creation team using LangGraph.
 """
 
-from typing import Annotated, TypedDict, Literal
+from typing import Annotated, TypedDict, Literal, List
 from dotenv import load_dotenv
 
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage
 from langchain_anthropic import ChatAnthropic
 from langchain_core.tools import tool
-from langgraph.graph import StateGraph, START, END
+from langgraph.graph import StateGraph, START, END, MessagesState
 from langgraph.graph.message import add_messages
 from langgraph.types import Send
 
@@ -74,12 +74,26 @@ def research_agent_node(state: TeamState):
     messages = [system_msg] + state["messages"]
     response = model.invoke(messages)
     
-    research_notes = "Research completed - see message for details"
+    # Extract research content from tool responses
+    research_notes = ""
+    if hasattr(response, 'tool_calls') and response.tool_calls:
+        # If there are tool calls, invoke them and get results
+        from langgraph.prebuilt import ToolNode
+        tool_node = ToolNode([web_research])
+        tool_messages = tool_node.invoke({"messages": [response]})
+        research_notes = "\n".join([msg.content for msg in tool_messages["messages"] if hasattr(msg, 'content')])
+    else:
+        # Fallback to response content if no tools were called
+        research_notes = response.content
     
     return {
-        "messages": [response],
+        "messages": state["messages"] + [response],
+        "task": state["task"],
         "research_notes": research_notes,
-        "current_agent": "researcher"
+        "draft_content": state.get("draft_content", ""),
+        "feedback": state.get("feedback", ""),
+        "current_agent": "researcher",
+        "revision_count": state.get("revision_count", 0)
     }
 
 def writer_agent_node(state: TeamState):
@@ -98,9 +112,13 @@ def writer_agent_node(state: TeamState):
     response = model.invoke(messages)
     
     return {
-        "messages": [response],
+        "messages": state["messages"] + [response],
+        "task": state["task"],
+        "research_notes": state["research_notes"],
         "draft_content": response.content,
-        "current_agent": "writer"
+        "feedback": state.get("feedback", ""),
+        "current_agent": "writer",
+        "revision_count": state.get("revision_count", 0)
     }
 
 def reviewer_agent_node(state: TeamState):
@@ -120,9 +138,25 @@ def reviewer_agent_node(state: TeamState):
     messages = [system_msg]
     response = model.invoke(messages)
     
+    # Process fact-checking tool calls if present
+    fact_check_results = ""
+    if hasattr(response, 'tool_calls') and response.tool_calls:
+        from langgraph.prebuilt import ToolNode
+        tool_node = ToolNode([fact_check])
+        tool_messages = tool_node.invoke({"messages": [response]})
+        fact_check_results = "\n".join([msg.content for msg in tool_messages["messages"] if hasattr(msg, 'content')])
+    
+    # Combine response content with fact-check results for comprehensive feedback
+    feedback_content = response.content
+    if fact_check_results:
+        feedback_content += f"\n\nFact-check results: {fact_check_results}"
+    
     return {
-        "messages": [response],
-        "feedback": response.content,
+        "messages": state["messages"] + [response],
+        "task": state["task"],
+        "research_notes": state["research_notes"],
+        "draft_content": state["draft_content"],
+        "feedback": feedback_content,
         "current_agent": "reviewer",
         "revision_count": state.get("revision_count", 0) + 1
     }
@@ -164,12 +198,16 @@ def writer_revision_node(state: TeamState):
     response = model.invoke([system_msg])
     
     return {
-        "messages": [response],
+        "messages": state["messages"] + [response],
+        "task": state["task"],
+        "research_notes": state["research_notes"],
         "draft_content": response.content,
-        "current_agent": "writer"
+        "feedback": state["feedback"],
+        "current_agent": "writer",
+        "revision_count": state.get("revision_count", 0)
     }
 
-graph_builder = WorkflowGraph(TeamState)
+graph_builder = StateGraph(TeamState)
 
 # Add agent nodes
 graph_builder.add_node("researcher", research_agent_node)
@@ -177,7 +215,7 @@ graph_builder.add_node("writer", writer_agent_node)
 graph_builder.add_node("reviewer", reviewer_agent_node)
 graph_builder.add_node("writer_revision", writer_revision_node)
 
-graph_builder.add_conditional_edge(START, "researcher")
+graph_builder.add_edge(START, "researcher")
 
 # Add conditional routing
 graph_builder.add_conditional_edge(
@@ -252,3 +290,10 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+
+
+
+
+
