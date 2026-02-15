@@ -2,14 +2,16 @@
 Multi-agent content creation team using LangGraph.
 """
 
-from typing import Annotated, TypedDict, Literal
+from typing import List, Annotated, TypedDict, Literal
 from dotenv import load_dotenv
 
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage
 from langchain_anthropic import ChatAnthropic
 from langchain_core.tools import tool
+from langchain_core.messages import ToolMessage
 from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
+from langgraph.prebuilt import ToolNode
 from langgraph.types import Send
 
 load_dotenv()
@@ -46,10 +48,14 @@ def fact_check(content: str) -> str:
         return "Content too short to verify - needs more detail"
     return "Fact-check complete: Content appears accurate based on available information"
 
+# Create tool nodes
+research_tool_node = ToolNode([web_research])
+fact_check_tool_node = ToolNode([fact_check])
+
 # Initialize agents
 def create_research_agent():
     model = ChatAnthropic(model="claude-3-haiku-20240307", temperature=0.1)
-    return model.bind_tool([web_research])
+    return model.bind_tools([web_research])
 
 def create_writer_agent():
     model = ChatAnthropic(model="claude-3-haiku-20240307", temperature=0.7)
@@ -57,7 +63,7 @@ def create_writer_agent():
 
 def create_reviewer_agent():
     model = ChatAnthropic(model="claude-3-haiku-20240307", temperature=0.3)
-    return model.bind_tool([fact_check])
+    return model.bind_tools([fact_check])
 
 # Agent nodes
 def research_agent_node(state: TeamState):
@@ -74,13 +80,37 @@ def research_agent_node(state: TeamState):
     messages = [system_msg] + state["messages"]
     response = model.invoke(messages)
     
-    research_notes = "Research completed - see message for details"
-    
-    return {
-        "messages": [response],
-        "research_notes": research_notes,
-        "current_agent": "researcher"
-    }
+    # Check if the model wants to use tools
+    if response.tool_calls:
+        # Process tool calls using the research tool node
+        tool_messages = []
+        for tool_call in response.tool_calls:
+            if tool_call["name"] == "web_research":
+                tool_result = web_research.invoke(tool_call["args"])
+                tool_msg = ToolMessage(
+                    content=str(tool_result),
+                    tool_call_id=tool_call["id"]
+                )
+                tool_messages.append(tool_msg)
+        
+        # Get final response after tool execution
+        final_messages = messages + [response] + tool_messages
+        final_response = model.invoke(final_messages)
+        
+        research_notes = str(tool_result) if tool_messages else "Research completed - see message for details"
+        
+        return {
+            "messages": [response] + tool_messages + [final_response],
+            "research_notes": research_notes,
+            "current_agent": "researcher"
+        }
+    else:
+        research_notes = "Research completed - see message for details"
+        return {
+            "messages": [response],
+            "research_notes": research_notes,
+            "current_agent": "researcher"
+        }
 
 def writer_agent_node(state: TeamState):
     """Writer agent creates content based on research."""
@@ -117,15 +147,39 @@ def reviewer_agent_node(state: TeamState):
     If content is good, approve for publication.
     """)
     
-    messages = [system_msg]
+    messages = [system_msg] + state["messages"][-2:]  # Keep recent context
     response = model.invoke(messages)
     
-    return {
-        "messages": [response],
-        "feedback": response.content,
-        "current_agent": "reviewer",
-        "revision_count": state.get("revision_count", 0) + 1
-    }
+    # Check if the model wants to use tools
+    if response.tool_calls:
+        # Process tool calls using the fact_check tool
+        tool_messages = []
+        for tool_call in response.tool_calls:
+            if tool_call["name"] == "fact_check":
+                tool_result = fact_check.invoke(tool_call["args"])
+                tool_msg = ToolMessage(
+                    content=str(tool_result),
+                    tool_call_id=tool_call["id"]
+                )
+                tool_messages.append(tool_msg)
+        
+        # Get final response after tool execution
+        final_messages = messages + [response] + tool_messages
+        final_response = model.invoke(final_messages)
+        
+        return {
+            "messages": [response] + tool_messages + [final_response],
+            "feedback": final_response.content,
+            "current_agent": "reviewer",
+            "revision_count": state.get("revision_count", 0) + 1
+        }
+    else:
+        return {
+            "messages": [response],
+            "feedback": response.content,
+            "current_agent": "reviewer",
+            "revision_count": state.get("revision_count", 0) + 1
+        }
 
 # Routing logic
 def route_to_next_agent(state: TeamState) -> Literal["writer", "reviewer", "writer_revision", "end"]:
@@ -169,7 +223,7 @@ def writer_revision_node(state: TeamState):
         "current_agent": "writer"
     }
 
-graph_builder = WorkflowGraph(TeamState)
+graph_builder = StateGraph(TeamState)
 
 # Add agent nodes
 graph_builder.add_node("researcher", research_agent_node)
@@ -177,10 +231,10 @@ graph_builder.add_node("writer", writer_agent_node)
 graph_builder.add_node("reviewer", reviewer_agent_node)
 graph_builder.add_node("writer_revision", writer_revision_node)
 
-graph_builder.add_conditional_edge(START, "researcher")
+graph_builder.add_edge(START, "researcher")
 
 # Add conditional routing
-graph_builder.add_conditional_edge(
+graph_builder.add_conditional_edges(
     "researcher",
     route_to_next_agent,
     {
@@ -191,7 +245,7 @@ graph_builder.add_conditional_edge(
     }
 )
 
-graph_builder.add_conditional_edge(
+graph_builder.add_conditional_edges(
     "writer", 
     route_to_next_agent,
     {
@@ -202,7 +256,7 @@ graph_builder.add_conditional_edge(
     }
 )
 
-graph_builder.add_conditional_edge(
+graph_builder.add_conditional_edges(
     "reviewer",
     route_to_next_agent,
     {
@@ -213,7 +267,7 @@ graph_builder.add_conditional_edge(
     }
 )
 
-app = graph_builder.build()
+app = graph_builder.compile()
 
 def main():
     """Run the multi-agent content team."""
@@ -252,3 +306,14 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+
+
+
+
+
+
+
+
+
